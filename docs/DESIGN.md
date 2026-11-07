@@ -15,22 +15,30 @@ Il bot esegue le azioni di cui è sicuro, chiede conferma con dei pulsanti per q
 - **Jev** (TypeSafe AI, System One) risponde solo a domande chiuse (scelta, sì/no, punteggio) con probabilità e confidence. Prende **tutte le decisioni**: quale azione, quale lista, se una voce esiste già.
 - **L'LLM** (OpenRouter) serve **solo a produrre testo**: spezzare un messaggio in più azioni, estrarre il nome dell'oggetto, il motivo e la data, proporre nome e descrizione di una nuova lista. **Non decide nulla.**
 
+## Stack
+
+- **TypeScript su Bun**: Bun esegue TypeScript direttamente, quindi niente build. I test usano `bun test` e il `.env` viene caricato in automatico.
+- **SQLite** con `bun:sqlite`, integrato in Bun. Il DB è un unico file.
+- **grammY** per il bot Telegram, in modalità polling.
+- **`@typesafe-ai/sdk`** per Jev; **OpenRouter** per l'LLM.
+- **Nessun server HTTP** per ora. Se servirà un'interfaccia web, lo aggiungeremo (con Fastify o con il server integrato di Bun).
+
 ## Architettura
 
 ```
-Telegram ──(polling, grammY)──▶ bot ──▶ pipeline ──▶ Jev (decisioni)
-                                  │          └──────▶ OpenRouter (estrazione testo)
-                                  ▼
-                              SQLite (file, volume persistente)
-Fastify: /health (e in futuro un'eventuale interfaccia web)
+Telegram ◀──(polling, grammY)── bot ──▶ pipeline ──▶ Jev (decisioni)
+                                 │          └──────▶ OpenRouter (estrazione testo)
+                                 ▼
+                          SQLite (file locale)
 ```
 
-- **Un solo processo Node** contiene bot e Fastify.
-- **Perché il bot funziona anche fuori casa:** il bot non riceve connessioni. È lui a chiedere a Telegram se ci sono messaggi nuovi (polling), quindi basta che giri su una macchina sempre accesa, come Railway. Fastify serve a Railway per controllare che il processo sia vivo (`/health`) e lascia aperta la porta a un'interfaccia web.
+- **Un solo processo Bun**, che gira sul **PC di casa**.
+- **Perché funziona anche fuori casa:** il bot non riceve connessioni. È lui a chiedere a Telegram se ci sono messaggi nuovi (polling), quindi non servono porte aperte sul router né un IP pubblico. Basta che il PC sia acceso.
+- **Se il PC è spento o in sospensione**, Telegram tiene i messaggi da parte per circa 24 ore e il bot li elabora alla riaccensione.
 - **Accesso:** il bot risponde **solo** a `TELEGRAM_CHAT_ID` e ignora tutti gli altri.
-- **Deploy (Railway):**
-  - SQLite va su un **Volume**, altrimenti i dati si perdono a ogni deploy;
-  - servono **due bot** (sviluppo e produzione) con token diversi, perché Telegram accetta un solo processo in polling per bot.
+- **Due bot, uno per lo sviluppo e uno per l'uso quotidiano**, con token diversi. Telegram accetta un solo processo in polling per bot: se ne avvii due con lo stesso token, si rubano i messaggi.
+- **Avvio automatico** all'accensione di Windows (Utilità di pianificazione o simili).
+- **Railway** o simili restano un'opzione futura, se servisse un bot sempre acceso. In quel caso SQLite andrebbe su un volume persistente.
 
 ### Configurazione (`.env`)
 
@@ -41,8 +49,7 @@ Fastify: /health (e in futuro un'eventuale interfaccia web)
 | `TYPESAFE_API_KEY` | Jev |
 | `OPENROUTER_API_KEY` | LLM |
 | `OPENROUTER_MODELS` | lista in ordine di priorità, separata da virgole. Default: `nvidia/nemotron-3.5-super-vl:free,google/gemma-4-26b-a4b-it:free,nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free` |
-| `DB_PATH` | default `data/shoppal.db` (su Railway: path del volume) |
-| `PORT` | Fastify |
+| `DB_PATH` | default `data/shoppal.db` |
 
 Se un modello OpenRouter fallisce (limite di richieste, errore, JSON non valido), si passa al successivo. Se falliscono tutti, il bot risponde "non riesco a interpretare il messaggio adesso, riprova più tardi" e non applica nulla.
 
@@ -120,15 +127,15 @@ Le azioni sicure si applicano subito. Per quelle incerte si salva una conferma i
 
 ## Testabilità
 
-Jev e l'LLM stanno dietro due interfacce (`Decider`, `Extractor`). Nei test si usano versioni finte e deterministiche: la pipeline si testa senza rete e senza chiavi. Uno script separato fa una prova vera con le chiavi reali.
+Jev e l'LLM stanno dietro due interfacce (`Decider`, `Extractor`). Nei test (`bun test`) si usano versioni finte e deterministiche: la pipeline si testa senza rete e senza chiavi. Per il DB si usa SQLite in memoria. Uno script separato fa una prova vera con le chiavi reali.
 
 ## Piano di lavoro
 
-1. Modello dati, migrazioni, repository e registro eventi (con test).
+1. Passaggio a Bun (via Node, `tsx` e Fastify). Modello dati, migrazioni, repository e registro eventi, con test.
 2. Interfacce `Decider` (Jev) ed `Extractor` (OpenRouter con modelli di riserva).
 3. Pipeline (triage → estrazione → decisione → esecuzione) con test sugli esempi reali.
 4. Bot Telegram: grammY, filtro sul chat id, pulsanti di conferma, stampa liste.
-5. Deploy su Railway: volume, `/health`, istruzioni nel README.
+5. Esecuzione sul PC di casa: avvio automatico su Windows e istruzioni nel README.
 
 ## Punti aperti
 
