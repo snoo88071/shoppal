@@ -55,7 +55,9 @@ Se un modello OpenRouter fallisce (limite di richieste, errore, JSON non valido)
 
 ## Modello dati
 
-All'inizio **non esiste nessuna lista**: le crea l'utente, ognuna con un nome e una **descrizione** di cosa contiene. La wishlist è una lista come le altre.
+Una lista corrisponde a un **tipo di negozio**: supermercato, negozio di articoli per animali, negozio di strumenti musicali, vivaio/garden shop, negozio di elettronica… La wishlist è una lista come le altre. **Non ci sono altre categorie:** gli articoli non vengono smistati in reparti o simili.
+
+All'inizio **non esiste nessuna lista**: le crea l'utente, ognuna con un nome e una **descrizione** di cosa ci va (es. *Vivaio*: "piante, semi, terriccio, vasi, attrezzi da giardino").
 
 Le descrizioni sono anche le opzioni che Jev riceve quando deve scegliere la lista: una buona descrizione migliora direttamente le sue scelte.
 
