@@ -131,7 +131,7 @@ Jev e l'LLM stanno dietro due interfacce (`Decider`, `Extractor`). Nei test (`bu
 
 ## Piano di lavoro
 
-1. Passaggio a Bun (via Node, `tsx` e Fastify). Modello dati, migrazioni, repository e registro eventi, con test.
+1. Passaggio a Bun, togliendo Node, `tsx` e Fastify. Modello dati, migrazioni, repository e registro eventi, con test.
 2. Interfacce `Decider` (Jev) ed `Extractor` (OpenRouter con modelli di riserva).
 3. Pipeline (triage → estrazione → decisione → esecuzione) con test sugli esempi reali.
 4. Bot Telegram: grammY, filtro sul chat id, pulsanti di conferma, stampa liste.
