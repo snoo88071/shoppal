@@ -3,5 +3,13 @@
   "version": "0.1.0",
   "private": true,
   "description": "Bot Telegram personale per le liste degli acquisti, con Jev (TypeSafe AI) e OpenRouter.",
-  "type": "module"
+  "type": "module",
+  "scripts": {
+    "test": "bun test",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.4.4",
+    "typescript": "^7.0.2"
+  }
 }
